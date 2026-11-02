@@ -1,0 +1,6 @@
+# Guardar siempre los archivos de texto con saltos de línea LF
+* text=auto eol=lf
+
+*.png binary
+*.webp binary
+*.jpg binary
