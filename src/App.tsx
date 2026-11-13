@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import heroImg from './assets/hero.webp'
 import { useAppData } from './context/AppDataContext'
 import { useAuth } from './context/AuthContext'
+import { pendingReview } from './lib/documents'
 import type { Role, View } from './types'
 import { AdminView, FleetView, RatesView } from './views/AdminView'
 import { SupportView } from './views/admin/SupportView'
@@ -34,8 +35,9 @@ const ROLE_LABEL: Record<Role, string> = { admin: 'Administrador', conductor: 'C
 
 export default function App() {
   const { user, logout } = useAuth()
-  const { tickets } = useAppData()
+  const { tickets, fleet } = useAppData()
   const openTickets = tickets.filter(t => t.status !== 'Resuelto').length
+  const docsToReview = [...fleet.drivers, ...fleet.vehicles].filter(pendingReview).length
   const role = user?.role
   // La navegación pertenece a un usuario: al cambiar de sesión se abre la primera pestaña del perfil
   const [nav, setNav] = useState({ owner: '', view: 'book' as View, justCreated: '' })
@@ -93,6 +95,11 @@ export default function App() {
                   <span className="ico" aria-hidden="true">{t.icon}</span>
                   <span>{t.label}</span>
                   {t.view === 'support' && openTickets > 0 && <span className="badge">{openTickets}</span>}
+                  {t.view === 'fleet' && docsToReview > 0 && (
+                    <span className="badge" title="Documentos por revisar">
+                      {docsToReview}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>

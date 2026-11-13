@@ -6,13 +6,15 @@ import { useToast } from '../../context/ToastContext'
 import { isClosed } from '../../lib/constants'
 import type { Booking, BookingStatus } from '../../types'
 import { useMyFleet } from '../../hooks/useMyFleet'
+import { DocStatusBox } from '../../components/DocStatus'
+import { isApproved } from '../../lib/documents'
 
 /** Siguiente paso que puede marcar el conductor */
 const NEXT: Partial<Record<BookingStatus, BookingStatus>> = { Confirmada: 'En curso', 'En curso': 'Finalizada' }
 
 export function DriverServicesView({ hidden, onCompleteProfile }: { hidden: boolean; onCompleteProfile: () => void }) {
   const { bookings, fleet, updateBooking } = useAppData()
-  const { driver } = useMyFleet()
+  const { driver, vehicle } = useMyFleet()
   const toast = useToast()
 
   if (!driver)
@@ -29,6 +31,25 @@ export function DriverServicesView({ hidden, onCompleteProfile }: { hidden: bool
     )
 
   const mine = bookings.filter(b => b.driverId === driver.id)
+  const approved = isApproved(driver)
+
+  // Sin licencia aprobada no se pueden recibir servicios
+  if (!approved && !mine.length)
+    return (
+      <section id="services" className={hidden ? 'hidden' : undefined}>
+        <div className="card">
+          <h2>Mis servicios</h2>
+          <div className="empty">
+            Podrás recibir solicitudes cuando el administrador apruebe tus documentos.
+          </div>
+          <DocStatusBox entry={driver} />
+          {vehicle && <DocStatusBox entry={vehicle} />}
+          <button type="button" className="primary full" onClick={onCompleteProfile}>
+            Ver mis datos y documentos
+          </button>
+        </div>
+      </section>
+    )
 
   function advance(b: Booking, status: BookingStatus) {
     if (updateBooking(b.id, { status })) toast('Estado actualizado: ' + status, 'success')

@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AddressInput } from '../components/AddressInput'
 import { Field } from '../components/Field'
 import { useAppData } from '../context/AppDataContext'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useForm, type Rules } from '../hooks/useForm'
+import { useRouteDistance } from '../hooks/useRouteDistance'
 import { MODE_OPTIONS, SERVICE_TYPES, WAIT_OPTIONS } from '../lib/constants'
-import { addDaysISO, cleanSpaces, formatPhone, money, phoneInput, sameText, titleCase, todayISO } from '../lib/format'
+import { addDaysISO, cleanSpaces, nowHHMM, formatPhone, money, phoneInput, sameText, titleCase, todayISO } from '../lib/format'
 import { quote } from '../lib/quote'
 import {
   address,
   dateCheck,
+  earliestTimeToday,
+  firstBookableDate,
   emailCheck,
   intRule,
   personName,
@@ -57,13 +61,13 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
   const form = useForm(rules, {
     mode: 'vehiculo',
     date: addDaysISO(1),
-    time: '09:00',
+    time: nowHHMM(),
     origin: '',
     destination: '',
     trip: 'ida',
     wait: '0',
     customWait: '90',
-    distance: '85',
+    distance: '',
     passengers: '1',
     name: user?.name ?? '',
     phone: user?.phone ?? '',
@@ -71,7 +75,39 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
     notes: '',
   })
   const v = form.values
+
+  // No se puede elegir una hora pasada: si la fecha es hoy, la hora se sube a la primera disponible
+  const isToday = v.date === todayISO()
+  function snapTime(date = v.date, time = v.time) {
+    if (date !== todayISO()) return
+    const earliest = earliestTimeToday()
+    if (earliest && time.slice(0, 5) < earliest) form.setValue('time', earliest)
+  }
+  useEffect(() => {
+    snapTime()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v.date])
+  const timeBind = form.bind('time')
   const q = quote({ mode: v.mode as Mode, trip: v.trip as Trip, distance: v.distance, wait: v.wait, customWait: v.customWait }, config)
+
+  // Distancia automática (OpenStreetMap) cuando ambas direcciones son válidas
+  const validPlace = (s: string) => cleanSpaces(s).length >= 5 && !address(s)
+  const routeReady = validPlace(v.origin) && validPlace(v.destination) && !sameText(v.origin, v.destination)
+  const { state: route, retry: retryRoute } = useRouteDistance(cleanSpaces(v.origin), cleanSpaces(v.destination), routeReady)
+  const routeKm = route.status === 'ok' ? Math.max(1, Math.round(route.route.km)) : null
+  useEffect(() => {
+    if (routeKm !== null) form.setValue('distance', String(routeKm))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKm])
+  // El valor solo se muestra con ambos puntos y la distancia calculada
+  // (o ingresada a mano si el servicio de mapas falló)
+  const manualKm = route.status === 'error' && !rules.distance?.check?.(v.distance.trim(), v)
+  const priced = routeReady && (route.status === 'ok' || manualKm)
+  const pendingMsg = !routeReady
+    ? 'Ingresa el lugar de recogida y el destino para ver el valor.'
+    : route.status === 'loading'
+      ? 'Calculando la ruta…'
+      : 'Ingresa los kilómetros para ver el valor.'
 
   // Con datos registrados, el contacto no se vuelve a pedir (salvo que el cliente quiera cambiarlo)
   const hasProfile = !!(user?.name && user.phone)
@@ -87,6 +123,10 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
 
   function reserve() {
     if (!form.validate(fields)) return
+    if (!priced) {
+      toast(pendingMsg, 'error')
+      return
+    }
     if (
       !['vehiculo', 'conductor'].includes(v.mode) ||
       !['ida', 'vuelta'].includes(v.trip) ||
@@ -175,17 +215,35 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
             <h2>2. Fecha, lugares y horarios</h2>
             <div className="grid">
               <Field form={form} name="date" label="Fecha del servicio">
-                <input type="date" {...form.bind('date')} min={todayISO()} max={addDaysISO(365)} />
+                <input type="date" {...form.bind('date')} min={firstBookableDate()} max={addDaysISO(365)} />
               </Field>
               <Field form={form} name="time" label="Hora de recogida">
-                <input type="time" {...form.bind('time')} />
+                <input
+                  type="time"
+                  {...timeBind}
+                  onBlur={() => {
+                    timeBind.onBlur()
+                    snapTime()
+                  }}
+                  min={isToday ? (earliestTimeToday() ?? undefined) : undefined}
+                />
               </Field>
             </div>
             <Field form={form} name="origin" label="Lugar de recogida">
-              <input {...form.bind('origin')} placeholder="Ej.: Av. Brasil 123, Rancagua" autoComplete="street-address" enterKeyHint="next" />
+              <AddressInput
+                {...form.bind('origin')}
+                onPick={label => form.setValue('origin', label)}
+                placeholder="Escribe calle y número, ej.: Av. Brasil 123, Rancagua"
+                enterKeyHint="next"
+              />
             </Field>
             <Field form={form} name="destination" label="Destino">
-              <input {...form.bind('destination')} placeholder="Ej.: Clínica Alemana, Vitacura, Santiago" enterKeyHint="next" />
+              <AddressInput
+                {...form.bind('destination')}
+                onPick={label => form.setValue('destination', label)}
+                placeholder="Ej.: Clínica Alemana, Vitacura"
+                enterKeyHint="next"
+              />
             </Field>
             <div className="grid">
               <div className="field">
@@ -214,17 +272,42 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
               </Field>
             )}
             <div className="grid">
-              <Field form={form} name="distance" label="Kilómetros estimados (solo ida)">
-                <input type="number" {...form.bind('distance')} inputMode="numeric" min={1} max={2000} step={1} />
+              <Field form={form} name="distance" label="Kilómetros (solo ida)">
+                <input
+                  type="number"
+                  {...form.bind('distance')}
+                  inputMode="numeric"
+                  min={1}
+                  max={2000}
+                  step={1}
+                  readOnly={route.status === 'ok' || route.status === 'loading'}
+                  title={route.status === 'ok' ? 'Calculado automáticamente según la ruta' : undefined}
+                />
               </Field>
               <Field form={form} name="passengers" label="Pasajeros">
                 <input type="number" {...form.bind('passengers')} inputMode="numeric" min={1} max={8} step={1} />
               </Field>
             </div>
-            <p className="hint">
-              En este prototipo la distancia se ingresa manualmente. La versión conectada a mapas calculará la ruta y
-              kilómetros automáticamente.
-            </p>
+            <div className="hint routeinfo" aria-live="polite">
+              {route.status === 'idle' &&
+                'Escribe al menos 3 letras de la dirección y elige una sugerencia; los kilómetros se calculan automáticamente.'}
+              {route.status === 'loading' && '⏳ Calculando la ruta…'}
+              {route.status === 'ok' && (
+                <>
+                  ✓ Ruta en auto: <b>{route.route.km.toFixed(1)} km</b> · aprox. {Math.round(route.route.minutes)} min (solo ida)
+                  <small>Desde: {route.route.from.label}</small>
+                  <small>Hasta: {route.route.to.label}</small>
+                </>
+              )}
+              {route.status === 'error' && (
+                <>
+                  <span className="routeerr">⚠ {route.message}</span> Puedes ingresar los kilómetros manualmente.{' '}
+                  <button type="button" className="linkbtn" onClick={retryRoute}>
+                    Reintentar
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="card">
@@ -285,27 +368,36 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
         <aside>
           <div className="card">
             <h2>Resumen de tu cotización</h2>
-            <div className="line">
-              <span>Tarifa de inicio</span>
-              <strong>{money(q.base)}</strong>
-            </div>
-            <div className="line">
-              <span>Kilómetros del servicio</span>
-              <strong>{money(q.kmCost)}</strong>
-            </div>
-            <div className="line">
-              <span>Espera solicitada</span>
-              <strong>{money(q.waitCost)}</strong>
-            </div>
-            <div className="line">
-              <span>Estimación del trayecto</span>
-              <strong>
-                {q.km} km · {q.wait} min espera
-              </strong>
-            </div>
-            <p className="hint">Valor referencial del servicio</p>
-            <div className="price">{money(q.total)}</div>
-            <button type="button" className="primary full" onClick={reserve}>
+            {priced ? (
+              <>
+                <div className="line">
+                  <span>Tarifa de inicio</span>
+                  <strong>{money(q.base)}</strong>
+                </div>
+                <div className="line">
+                  <span>Kilómetros del servicio</span>
+                  <strong>{money(q.kmCost)}</strong>
+                </div>
+                <div className="line">
+                  <span>Espera solicitada</span>
+                  <strong>{money(q.waitCost)}</strong>
+                </div>
+                <div className="line">
+                  <span>Estimación del trayecto</span>
+                  <strong>
+                    {q.km} km · {q.wait} min espera
+                  </strong>
+                </div>
+                <p className="hint">Valor referencial del servicio</p>
+                <div className="price">{money(q.total)}</div>
+              </>
+            ) : (
+              <div className="quote-pending" aria-live="polite">
+                <span aria-hidden="true">📍</span>
+                {pendingMsg}
+              </div>
+            )}
+            <button type="button" className="primary full" onClick={reserve} disabled={!priced}>
               Enviar solicitud de reserva
             </button>
             <p className="hint">
@@ -331,9 +423,9 @@ export function BookView({ hidden, onReserved }: { hidden: boolean; onReserved: 
       <div className="quotebar">
         <div>
           <small>Total estimado</small>
-          <strong>{money(q.total)}</strong>
+          <strong>{priced ? money(q.total) : '—'}</strong>
         </div>
-        <button type="button" className="primary" onClick={reserve}>
+        <button type="button" className="primary" onClick={reserve} disabled={!priced}>
           Reservar
         </button>
       </div>

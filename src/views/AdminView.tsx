@@ -1,7 +1,9 @@
 import { BookingCard } from '../components/BookingCard'
 import { useAppData } from '../context/AppDataContext'
 import { useToast } from '../context/ToastContext'
-import type { Booking, BookingStatus } from '../types'
+import { isApproved } from '../lib/documents'
+import type { Booking, BookingStatus, FleetEntry } from '../types'
+import { DocReview } from './admin/DocReview'
 import { DriverForm, VehicleForm } from './admin/FleetForm'
 import { FleetList } from './admin/FleetList'
 import { RatesForm } from './admin/RatesForm'
@@ -19,6 +21,12 @@ export function AdminView({ hidden }: { hidden: boolean }) {
   }
 
   function assign(b: Booking, driverId: string, vehicleId: string) {
+    const unapproved = (id: string, current: string, list: FleetEntry[]) =>
+      !!id && id !== current && !isApproved(list.find(x => x.id === id))
+    if (unapproved(driverId, b.driverId, fleet.drivers) || unapproved(vehicleId, b.vehicleId, fleet.vehicles)) {
+      toast('Ese conductor o vehículo aún no tiene sus documentos aprobados.', 'error')
+      return
+    }
     if (['Confirmada', 'En curso'].includes(b.status) && !driverId)
       toast('Una reserva confirmada o en curso debería tener un conductor asignado.', 'error')
     if (updateBooking(b.id, { driverId, vehicleId })) toast('Asignación guardada.', 'success')
@@ -69,21 +77,36 @@ export function FleetView({ hidden }: { hidden: boolean }) {
 
   return (
     <section id="fleet" className={hidden ? 'hidden' : undefined}>
+      <DocReview />
       <div className="card">
-        <h2>Conductores y vehículos · Fotografías</h2>
+        <h2>Conductores y vehículos</h2>
         <p className="hint">
-          Los conductores con cuenta completan sus propios datos y vehículo; aquí también puedes registrarlos
-          manualmente. Las imágenes se reducen de tamaño y se guardan únicamente en este navegador.
+          Cada conductor registra sus propios datos, vehículo y documentos desde su cuenta; aquí los revisas y
+          administras.
+        </p>
+        <h3>Conductores registrados ({fleet.drivers.length})</h3>
+        <FleetList items={fleet.drivers} />
+        <h3>Vehículos registrados ({fleet.vehicles.length})</h3>
+        <FleetList items={fleet.vehicles} />
+      </div>
+
+      {/* Uso excepcional: cerrado por defecto (el contenido se mantiene al cerrar) */}
+      <details className="card collapsible">
+        <summary>
+          <span>
+            <b>Registrar manualmente</b>
+            <small className="hint">Solo si un conductor no puede hacerlo desde su cuenta</small>
+          </span>
+        </summary>
+        <p className="hint">
+          Los registros creados aquí quedan aprobados automáticamente. Las imágenes se reducen de tamaño y se guardan
+          únicamente en este navegador.
         </p>
         <div className="grid">
           <DriverForm />
           <VehicleForm />
         </div>
-        <h3>Conductores registrados</h3>
-        <FleetList items={fleet.drivers} />
-        <h3>Vehículos registrados</h3>
-        <FleetList items={fleet.vehicles} />
-      </div>
+      </details>
     </section>
   )
 }

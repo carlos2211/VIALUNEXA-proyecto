@@ -1,3 +1,4 @@
+import { DocButton, ReviewBadge } from '../../components/DocStatus'
 import { FleetPhoto, Plate } from '../../components/FleetPhoto'
 import { useAppData } from '../../context/AppDataContext'
 import { useToast } from '../../context/ToastContext'
@@ -21,12 +22,14 @@ export function FleetList({ items }: { items: FleetEntry[] }) {
         <div key={x.id} className="fleetitem">
           <FleetPhoto entry={x} />
           <div className="fleetinfo">
-            <strong>{x.name}</strong>
+            <strong>{x.name}</strong> <ReviewBadge entry={x} />
+            {x.review?.status === 'Rechazado' && <div className="hint danger-text">Motivo: {x.review.note}</div>}
             <div className="hint">
               <Plate entry={x} />
               {[x.license && 'Licencia ' + x.license, x.year, x.phone, x.detail].filter(Boolean).join(' · ')}
             </div>
             <div className="fleetactions">
+              {x.document && <DocButton doc={x.document} />}
               <button type="button" className="secondary" onClick={() => remove(x)}>
                 Eliminar
               </button>

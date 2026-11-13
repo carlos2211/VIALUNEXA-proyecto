@@ -262,3 +262,71 @@ nav.tabs button{position:relative}
 .badge{position:static;margin-left:2px}
 }
 @media(hover:hover){.support-btn:hover{background:#ffefcc}}
+
+/* Cálculo de ruta */
+.routeinfo{margin:4px 0 0}
+.routeinfo small{display:block;font-size:12px;overflow-wrap:anywhere;margin-top:2px}
+.routeerr{color:#b42318}
+.linkbtn{background:none;border:0;padding:0;color:#14547a;font-weight:650;text-decoration:underline;cursor:pointer;font-size:inherit}
+input[readonly]{background:#f3f6f9}
+
+/* Autocompletar direcciones */
+.combo{position:relative}
+.combo-list{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px);margin:0;padding:4px;list-style:none;background:#fff;border:1px solid #cbd6e1;border-radius:11px;box-shadow:0 10px 28px #0a28482e;max-height:280px;overflow-y:auto}
+.combo-list li{padding:10px 12px;border-radius:8px;font-size:14px;line-height:1.35;cursor:pointer;overflow-wrap:anywhere}
+.combo-list li.active{background:#eef3f7}
+.combo-list .combo-empty{color:var(--muted);cursor:default}
+.combo-spin{position:absolute;right:14px;top:16px;width:16px;height:16px;border:2px solid #cbd6e1;border-top-color:#14547a;border-radius:50%;animation:combo-spin .7s linear infinite}
+@keyframes combo-spin{to{transform:rotate(360deg)}}
+.combo-list .combo-attrib{font-size:11px;color:var(--muted);text-align:right;cursor:default;padding:4px 8px}
+.quote-pending{display:flex;gap:10px;align-items:center;background:#f0f6fb;border:1px dashed #b9cde0;border-radius:12px;padding:16px;margin:6px 0 14px;font-size:14px;color:#193650;line-height:1.45}
+.quote-pending span{font-size:22px}
+
+/* Tarifas (admin) */
+.rategroup{border:1px solid #d5e1e9;border-radius:12px;padding:6px 14px 14px;margin:0 0 14px;min-width:0}
+.rategroup legend{font-weight:750;padding:0 6px;color:#193650}
+.rategroup > .hint{margin:0 0 10px}
+.rategroup .field small.hint{display:block;margin-top:4px;font-size:12px}
+.rateexample{background:#f0f6fb;border-radius:10px;padding:10px 12px;font-size:14px;color:#193650}
+
+/* Documentos de la flota */
+.status.doc-ok{background:#dcfce7;color:#166534}
+.status.doc-pending{background:#fef3c7;color:#92400e}
+.status.doc-bad{background:#fee2e2;color:#991b1b}
+.status.doc-missing{background:#ffedd5;color:#9a3412}
+.docbox{display:flex;gap:12px;align-items:center;justify-content:space-between;border-radius:12px;padding:12px;margin:12px 0;border:1px solid #d5e1e9;background:#f8fafc}
+.docbox .hint{display:block;margin-top:4px}
+.docbox.doc-ok{background:#f0fdf4;border-color:#bbf7d0}
+.docbox.doc-pending{background:#fffbeb;border-color:#fde68a}
+.docbox.doc-bad,.docbox.doc-missing{background:#fef2f2;border-color:#fecaca}
+.docbox .secondary{flex-shrink:0}
+.reviewgrid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.reviewitem{border:1px solid #d5e1e9;border-radius:12px;padding:12px;min-width:0}
+.reviewitem .hint{display:block;overflow-wrap:anywhere}
+.docthumb{display:block;width:100%;padding:0;margin:10px 0;border:1px solid #d5e1e9;border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in}
+.docthumb img{display:block;width:100%;max-height:220px;object-fit:contain}
+.reviewitem .fleetactions .primary{min-height:44px;padding:10px 14px;font-size:14px}
+.danger{background:var(--danger);color:#fff;border:0;border-radius:11px;padding:10px 14px;min-height:44px;font-weight:700;font-size:14px}
+.danger:disabled{opacity:.5;cursor:not-allowed}
+
+/* Sección plegable (p. ej. registro manual de flota) */
+.collapsible > summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:44px}
+.collapsible > summary::-webkit-details-marker{display:none}
+.collapsible > summary span{display:flex;flex-direction:column;gap:2px}
+.collapsible > summary span .hint{font-weight:400}
+.collapsible > summary::after{content:'▾';font-size:18px;color:#52677a;transition:transform .2s}
+.collapsible[open] > summary::after{transform:rotate(180deg)}
+.collapsible[open] > summary{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e3eaf0}
+
+/* Solicitudes plegables (vista del pasajero) */
+.res-collapsible > summary{list-style:none;cursor:pointer;position:relative;padding-right:28px}
+.res-collapsible > summary::-webkit-details-marker{display:none}
+.res-collapsible > summary .reservation-top{margin-bottom:6px}
+.res-summary{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;font-size:14px;color:#40556b}
+.res-summary strong{margin-left:auto;color:var(--text)}
+.res-route{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res-toggle{position:absolute;right:2px;bottom:2px;width:22px;height:22px;display:grid;place-items:center;color:#52677a}
+.res-toggle::before{content:'▾';font-size:18px;transition:transform .2s;display:block}
+.res-collapsible[open] .res-toggle::before{transform:rotate(180deg)}
+.res-collapsible[open] > summary{border-bottom:1px solid #e3eaf0;padding-bottom:10px;margin-bottom:10px}
+.res-collapsible[open] .res-summary{display:none}

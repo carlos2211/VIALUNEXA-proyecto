@@ -67,6 +67,27 @@ export interface FleetEntry {
   license?: string
   /** Año del vehículo */
   year?: string
+  /** Licencia de conducir (conductores) o permiso de circulación (vehículos) */
+  document?: FleetDoc
+  /** Revisión del documento por el administrador */
+  review?: Review
+}
+
+export interface FleetDoc {
+  /** Data URL: imagen JPEG comprimida o PDF */
+  data: string
+  name: string
+  type: string
+  uploaded: string
+}
+
+export type ReviewStatus = 'Pendiente' | 'Aprobado' | 'Rechazado'
+
+export interface Review {
+  status: ReviewStatus
+  /** Motivo del rechazo (visible para el conductor) */
+  note: string
+  date: string
 }
 
 export interface Fleet {

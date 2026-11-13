@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isApproved } from '../lib/documents'
 import type { Booking, Fleet, FleetEntry } from '../types'
 import { FleetPhoto, Plate } from './FleetPhoto'
 
@@ -72,17 +73,28 @@ export function AssignmentEditor({ booking, fleet, onSave }: EditorProps) {
   const [vehicleId, setVehicleId] = useState(booking.vehicleId)
   const withVehicle = booking.mode === 'vehiculo'
 
-  const options = (items: FleetEntry[]) => (
-    <>
-      <option value="">Sin asignar</option>
-      {items.map(x => (
-        <option key={x.id} value={x.id}>
-          {x.name}
-          {x.plate ? ' · ' + x.plate : ''}
-        </option>
-      ))}
-    </>
-  )
+  // Solo se ofrecen registros con documentos aprobados (se mantiene visible el asignado actualmente)
+  const options = (items: FleetEntry[], current: string) => {
+    const usable = items.filter(x => isApproved(x) || x.id === current)
+    const waiting = items.length - usable.length
+    return (
+      <>
+        <option value="">Sin asignar</option>
+        {usable.map(x => (
+          <option key={x.id} value={x.id}>
+            {x.name}
+            {x.plate ? ' · ' + x.plate : ''}
+            {isApproved(x) ? '' : ' (documentos sin aprobar)'}
+          </option>
+        ))}
+        {waiting > 0 && (
+          <option disabled value="__waiting">
+            {waiting} más esperando aprobación de documentos
+          </option>
+        )}
+      </>
+    )
+  }
 
   return (
     <div className="assignment">
@@ -97,17 +109,17 @@ export function AssignmentEditor({ booking, fleet, onSave }: EditorProps) {
               setDriverId(e.target.value)
               // Propone el vehículo del conductor elegido
               const own = vehicleOf(fleet, findById(fleet.drivers, e.target.value))
-              if (own) setVehicleId(own.id)
+              if (own && isApproved(own)) setVehicleId(own.id)
             }}
           >
-            {options(fleet.drivers)}
+            {options(fleet.drivers, booking.driverId)}
           </select>
         </div>
         {withVehicle && (
           <div className="field">
             <label htmlFor={`v-${booking.id}`}>Vehículo</label>
             <select id={`v-${booking.id}`} value={vehicleId} onChange={e => setVehicleId(e.target.value)}>
-              {options(fleet.vehicles)}
+              {options(fleet.vehicles, booking.vehicleId)}
             </select>
           </div>
         )}

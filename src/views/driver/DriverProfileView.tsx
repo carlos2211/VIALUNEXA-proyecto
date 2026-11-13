@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Field } from '../../components/Field'
+import { DocStatusBox } from '../../components/DocStatus'
 import { FleetPhoto, Plate } from '../../components/FleetPhoto'
 import { useAppData } from '../../context/AppDataContext'
 import { useAuth } from '../../context/AuthContext'
@@ -7,9 +8,10 @@ import { useToast } from '../../context/ToastContext'
 import { useForm, type Rules } from '../../hooks/useForm'
 import { useMyFleet } from '../../hooks/useMyFleet'
 import { cleanSpaces, formatPhone, phoneInput, sameText, titleCase } from '../../lib/format'
+import { DOC_ACCEPT, DOC_HINT, docRule, docStatus, newReview, readDocument } from '../../lib/documents'
 import { compressPhoto } from '../../lib/photo'
 import { intRule, personName, phoneCheck, photoCheck, RX, safeText } from '../../lib/validators'
-import type { FleetEntry } from '../../types'
+import type { FleetDoc, FleetEntry } from '../../types'
 
 const ACCEPT = 'image/jpeg,image/png,image/webp'
 const FILE_HINT = <div className="filehint">JPG, PNG o WEBP · máximo 8 MB. Si no eliges una, se mantiene la actual.</div>
@@ -17,9 +19,19 @@ const LICENSES = ['B', 'A1', 'A2', 'A3', 'A4', 'A5']
 const MAX_YEAR = new Date().getFullYear() + 1
 
 const NO_SPACE = 'No queda espacio en el navegador. Prueba con una imagen más pequeña.'
+const DOC_FILE_HINT = <div className="filehint">{DOC_HINT} Si no eliges uno, se mantiene el actual.</div>
 
-type DriverKey = 'dName' | 'dPhone' | 'dLicense' | 'dDetail' | 'dPhoto'
-const DRIVER_FIELDS: DriverKey[] = ['dName', 'dPhone', 'dLicense', 'dDetail', 'dPhoto']
+/**
+ * Revisión que corresponde al guardar: vuelve a "Pendiente" si cambió el documento,
+ * un dato que el admin verifica (clase de licencia, patente) o si estaba rechazado.
+ */
+function nextReview(prev: FleetEntry | undefined, newDoc: FleetDoc | undefined, keyChanged: boolean) {
+  const resubmit = !!newDoc || keyChanged || !prev || docStatus(prev) === 'Rechazado'
+  return { review: resubmit ? newReview('Pendiente') : prev.review, resubmit }
+}
+
+type DriverKey = 'dName' | 'dPhone' | 'dLicense' | 'dDetail' | 'dPhoto' | 'dDoc'
+const DRIVER_FIELDS: DriverKey[] = ['dName', 'dPhone', 'dLicense', 'dDetail', 'dPhoto', 'dDoc']
 
 function MyDriverForm({ active }: { active: boolean }) {
   const { fleet, saveFleetEntry } = useAppData()
@@ -43,6 +55,7 @@ function MyDriverForm({ active }: { active: boolean }) {
     dLicense: { required: true },
     dDetail: { maxLen: 80, format: cleanSpaces, check: safeText },
     dPhoto: { file: true, checkFile: photoCheck },
+    dDoc: { required: true, file: true, checkFile: docRule('driver', driver?.document) },
   }
   const initial = () => ({
     dName: driver?.name ?? user?.name ?? '',
@@ -50,12 +63,13 @@ function MyDriverForm({ active }: { active: boolean }) {
     dLicense: driver?.license ?? '',
     dDetail: driver?.detail ?? '',
     dPhoto: '',
+    dDoc: '',
   })
   const form = useForm(rules, initial())
 
   useEffect(() => {
     if (!active) return
-    form.reset(['dPhoto'])
+    form.reset(['dPhoto', 'dDoc'])
     form.setValues(initial())
     form.untouch(DRIVER_FIELDS)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -66,6 +80,9 @@ function MyDriverForm({ active }: { active: boolean }) {
     const f = form.applyFormats(DRIVER_FIELDS)
     try {
       const file = form.files.dPhoto
+      const docFile = form.files.dDoc
+      const newDoc = docFile ? await readDocument(docFile) : undefined
+      const { review, resubmit } = nextReview(driver, newDoc, !!driver && driver.license !== f.dLicense)
       const entry: FleetEntry = {
         id: driver?.id ?? 'driver-' + Date.now().toString(36),
         kind: 'driver',
@@ -75,11 +92,13 @@ function MyDriverForm({ active }: { active: boolean }) {
         license: f.dLicense,
         detail: f.dDetail.trim(),
         photo: file ? await compressPhoto(file) : (driver?.photo ?? ''),
+        document: newDoc ?? driver?.document,
+        review,
       }
       if (!saveFleetEntry(entry)) throw Error(NO_SPACE)
       updateProfile({ name: entry.name, phone: entry.phone ?? user.phone })
-      form.reset(['dPhoto'])
-      toast('Tus datos fueron guardados.', 'success')
+      form.reset(['dPhoto', 'dDoc'])
+      toast(resubmit ? 'Datos guardados. Tu licencia quedó en revisión.' : 'Tus datos fueron guardados.', 'success')
     } catch (e) {
       toast((e as Error).message || 'No fue posible cargar la imagen.', 'error')
     }
@@ -100,7 +119,10 @@ function MyDriverForm({ active }: { active: boolean }) {
           </div>
         </div>
       )}
-      {!driver && <div className="notice">Completa tus datos para que podamos asignarte servicios.</div>}
+      {driver && <DocStatusBox entry={driver} />}
+      {!driver && (
+        <div className="notice">Completa tus datos y adjunta tu licencia de conducir para que podamos aprobarte.</div>
+      )}
       <div className="grid" style={{ marginTop: 14 }}>
         <Field form={form} name="dName" label="Nombre y apellido">
           <input {...form.bind('dName')} autoComplete="name" autoCapitalize="words" />
@@ -122,6 +144,10 @@ function MyDriverForm({ active }: { active: boolean }) {
           <input {...form.bind('dDetail')} placeholder="Ej.: 10 años de experiencia, bilingüe" />
         </Field>
       </div>
+      <Field form={form} name="dDoc" label="Licencia de conducir (foto o PDF)">
+        <input type="file" {...form.bind('dDoc')} accept={DOC_ACCEPT} />
+        {DOC_FILE_HINT}
+      </Field>
       <Field form={form} name="dPhoto" label="Fotografía (opcional)">
         <input type="file" {...form.bind('dPhoto')} accept={ACCEPT} />
         {FILE_HINT}
@@ -133,8 +159,8 @@ function MyDriverForm({ active }: { active: boolean }) {
   )
 }
 
-type VehicleKey = 'vName' | 'vPlate' | 'vYear' | 'vDetail' | 'vPhoto'
-const VEHICLE_FIELDS: VehicleKey[] = ['vName', 'vPlate', 'vYear', 'vDetail', 'vPhoto']
+type VehicleKey = 'vName' | 'vPlate' | 'vYear' | 'vDetail' | 'vPhoto' | 'vDoc'
+const VEHICLE_FIELDS: VehicleKey[] = ['vName', 'vPlate', 'vYear', 'vDetail', 'vPhoto', 'vDoc']
 
 function MyVehicleForm({ active }: { active: boolean }) {
   const { fleet, saveFleetEntry } = useAppData()
@@ -169,6 +195,7 @@ function MyVehicleForm({ active }: { active: boolean }) {
     vYear: { required: true, check: intRule(1990, MAX_YEAR) },
     vDetail: { maxLen: 80, format: cleanSpaces, check: safeText },
     vPhoto: { file: true, checkFile: photoCheck },
+    vDoc: { required: true, file: true, checkFile: docRule('vehicle', vehicle?.document) },
   }
   const initial = () => ({
     vName: vehicle?.name ?? '',
@@ -176,12 +203,13 @@ function MyVehicleForm({ active }: { active: boolean }) {
     vYear: vehicle?.year ?? '',
     vDetail: vehicle?.detail ?? '',
     vPhoto: '',
+    vDoc: '',
   })
   const form = useForm(rules, initial())
 
   useEffect(() => {
     if (!active) return
-    form.reset(['vPhoto'])
+    form.reset(['vPhoto', 'vDoc'])
     form.setValues(initial())
     form.untouch(VEHICLE_FIELDS)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,6 +220,9 @@ function MyVehicleForm({ active }: { active: boolean }) {
     const f = form.applyFormats(VEHICLE_FIELDS)
     try {
       const file = form.files.vPhoto
+      const docFile = form.files.vDoc
+      const newDoc = docFile ? await readDocument(docFile) : undefined
+      const { review, resubmit } = nextReview(vehicle, newDoc, !!vehicle && vehicle.plate !== f.vPlate.trim())
       const entry: FleetEntry = {
         id: vehicle?.id ?? 'vehicle-' + Date.now().toString(36),
         kind: 'vehicle',
@@ -201,10 +232,15 @@ function MyVehicleForm({ active }: { active: boolean }) {
         year: f.vYear,
         detail: f.vDetail.trim(),
         photo: file ? await compressPhoto(file) : (vehicle?.photo ?? ''),
+        document: newDoc ?? vehicle?.document,
+        review,
       }
       if (!saveFleetEntry(entry)) throw Error(NO_SPACE)
-      form.reset(['vPhoto'])
-      toast('Datos del vehículo guardados.', 'success')
+      form.reset(['vPhoto', 'vDoc'])
+      toast(
+        resubmit ? 'Vehículo guardado. El permiso de circulación quedó en revisión.' : 'Datos del vehículo guardados.',
+        'success',
+      )
     } catch (e) {
       toast((e as Error).message || 'No fue posible cargar la imagen.', 'error')
     }
@@ -227,8 +263,12 @@ function MyVehicleForm({ active }: { active: boolean }) {
           </div>
         </div>
       ) : (
-        <div className="notice">Aún no registras un vehículo. Es necesario para servicios de traslado.</div>
+        <div className="notice">
+          Aún no registras un vehículo. Es necesario para servicios de traslado y debes adjuntar su permiso de
+          circulación vigente.
+        </div>
       )}
+      {vehicle && <DocStatusBox entry={vehicle} />}
       <div className="grid" style={{ marginTop: 14 }}>
         <Field form={form} name="vName" label="Marca y modelo">
           <input {...form.bind('vName')} placeholder="Ej.: Hyundai Tucson" />
@@ -243,6 +283,10 @@ function MyVehicleForm({ active }: { active: boolean }) {
           <input {...form.bind('vDetail')} placeholder="Ej.: 4 pasajeros · color gris" />
         </Field>
       </div>
+      <Field form={form} name="vDoc" label="Permiso de circulación (foto o PDF)">
+        <input type="file" {...form.bind('vDoc')} accept={DOC_ACCEPT} />
+        {DOC_FILE_HINT}
+      </Field>
       <Field form={form} name="vPhoto" label="Fotografía del vehículo (opcional)">
         <input type="file" {...form.bind('vPhoto')} accept={ACCEPT} />
         {FILE_HINT}

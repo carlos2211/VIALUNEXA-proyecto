@@ -16,23 +16,30 @@ interface Props {
   admin?: AdminActions
   /** Contenido adicional al final de la tarjeta (p. ej. acciones del conductor) */
   children?: ReactNode
+  /** Muestra solo un resumen; el detalle se despliega al hacer clic */
+  collapsible?: boolean
+  /** Con `collapsible`: si parte desplegada */
+  defaultOpen?: boolean
 }
 
-export function BookingCard({ booking: b, fleet, admin, children }: Props) {
+export function BookingCard({ booking: b, fleet, admin, children, collapsible, defaultOpen }: Props) {
   const statusClass = b.status.toLowerCase().replace(' ', '-')
   const stageIndex = STAGES.indexOf(b.status)
 
-  return (
-    <div className="reservation">
-      <div className="reservation-top">
-        <div>
-          <strong>{b.id}</strong>
-          <div className="hint">
-            {b.service} · {modeLabel(b.mode)}
-          </div>
+  const top = (
+    <div className="reservation-top">
+      <div>
+        <strong>{b.id}</strong>
+        <div className="hint">
+          {b.service} · {modeLabel(b.mode)}
         </div>
-        <span className={`status ${statusClass}`}>{b.status}</span>
       </div>
+      <span className={`status ${statusClass}`}>{b.status}</span>
+    </div>
+  )
+
+  const body = (
+    <>
       <div className="steps">
         {b.status === 'Cancelada' ? (
           <span className="step">Solicitud cancelada</span>
@@ -82,6 +89,33 @@ export function BookingCard({ booking: b, fleet, admin, children }: Props) {
         </>
       )}
       {children}
+    </>
+  )
+
+  if (collapsible)
+    return (
+      <details className="reservation res-collapsible" open={defaultOpen}>
+        <summary>
+          {top}
+          <div className="res-summary">
+            <span>
+              📅 {b.date} · {b.time}
+            </span>
+            <span className="res-route">
+              {b.origin} → {b.destination}
+            </span>
+            <strong>{money(b.price)}</strong>
+          </div>
+          <span className="res-toggle" aria-hidden="true" />
+        </summary>
+        {body}
+      </details>
+    )
+
+  return (
+    <div className="reservation">
+      {top}
+      {body}
     </div>
   )
 }

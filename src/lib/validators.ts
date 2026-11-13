@@ -87,23 +87,33 @@ export function photoCheck(file: File | null | undefined) {
 
 export function dateCheck(v: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || isNaN(new Date(v + 'T00:00').getTime())) return 'Fecha no válida.'
-  if (v < todayISO()) return 'La fecha no puede ser anterior a hoy.'
+  if (v < todayISO()) return 'Esa fecha ya pasó. Elige hoy o un día posterior.'
+  if (v < firstBookableDate()) return 'Ya no quedan horas disponibles para hoy. Elige mañana o un día posterior.'
   if (v > addDaysISO(365)) return 'Puedes reservar con un máximo de 12 meses de anticipación.'
   return ''
 }
 
+/**
+ * Primera hora que se puede reservar hoy (ahora + anticipación mínima, redondeada a 5 min),
+ * en formato HH:MM. Devuelve null si ya no quedan horas disponibles hoy.
+ */
+export function earliestTimeToday(): string | null {
+  const now = new Date()
+  const min = Math.ceil((now.getHours() * 60 + now.getMinutes() + MIN_NOTICE) / 5) * 5
+  if (min >= 1440) return null
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+}
+
+/** Primer día reservable: hoy, o mañana si ya no quedan horas hoy */
+export const firstBookableDate = () => (earliestTimeToday() ? todayISO() : addDaysISO(1))
+
 export function timeCheck(v: string, date: string) {
   if (!/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(v)) return 'Hora no válida (formato HH:MM).'
   if (date === todayISO()) {
-    const [h, m] = v.split(':').map(Number)
-    const now = new Date()
-    const min = now.getHours() * 60 + now.getMinutes() + MIN_NOTICE
-    if (h * 60 + m < min) {
-      if (min >= 1440) return 'Ya no es posible reservar para hoy. Selecciona otra fecha.'
-      const hh = String(Math.floor(min / 60)).padStart(2, '0')
-      const mm = String(min % 60).padStart(2, '0')
-      return `Para hoy, la hora debe ser desde las ${hh}:${mm} (mínimo ${MIN_NOTICE} min de anticipación).`
-    }
+    const earliest = earliestTimeToday()
+    if (!earliest) return 'Ya no es posible reservar para hoy. Selecciona otra fecha.'
+    if (v.slice(0, 5) < earliest)
+      return `Esa hora ya pasó o está muy próxima. Para hoy, elige desde las ${earliest} (mínimo ${MIN_NOTICE} min de anticipación).`
   }
   return ''
 }

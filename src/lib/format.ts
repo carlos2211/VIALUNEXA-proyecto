@@ -2,6 +2,11 @@ export const money = (n: number) => '$' + Math.round(n).toLocaleString('es-CL')
 export const fmtInt = (n: number) => n.toLocaleString('es-CL')
 
 export const todayISO = () => new Date().toLocaleDateString('en-CA')
+/** Hora actual en formato HH:MM (24 h), para inputs de tipo time */
+export const nowHHMM = () => {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 export const addDaysISO = (n: number) => {
   const d = new Date()
   d.setDate(d.getDate() + n)

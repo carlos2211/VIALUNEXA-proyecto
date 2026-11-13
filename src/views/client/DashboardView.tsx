@@ -36,7 +36,7 @@ export function DashboardView({ hidden, justCreated, onNew }: Props) {
       <BookingBoard
         bookings={mine}
         renderCard={b => (
-          <BookingCard key={b.id} booking={b} fleet={fleet}>
+          <BookingCard key={b.id} booking={b} fleet={fleet} collapsible defaultOpen={b.id === justCreated}>
             <SupportButton booking={b} />
           </BookingCard>
         )}
