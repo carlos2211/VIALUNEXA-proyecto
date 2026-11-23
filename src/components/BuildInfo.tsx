@@ -10,15 +10,20 @@ type ApiState = 'off' | 'checking' | 'up' | 'down'
  */
 export function BuildInfo() {
   const [api, setApi] = useState<ApiState>(API_URL ? 'checking' : 'off')
+  const [apiCommit, setApiCommit] = useState('')
 
   useEffect(() => {
     if (!API_URL) return
     const ctrl = new AbortController()
     // En planes gratuitos la API puede tardar en "despertar"
     const timer = setTimeout(() => ctrl.abort(), 60_000)
-    fetch(`${API_URL}/actuator/health`, { signal: ctrl.signal })
-      .then(r => r.json())
-      .then((j: { status?: string }) => setApi(j.status === 'UP' ? 'up' : 'down'))
+    // /api/version (y no /actuator/health): la configuración CORS de la API no cubre Actuator
+    fetch(`${API_URL}/api/version`, { signal: ctrl.signal })
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((j: { commit?: string }) => {
+        setApi('up')
+        setApiCommit((j.commit ?? '').slice(0, 7))
+      })
       .catch(() => setApi('down'))
       .finally(() => clearTimeout(timer))
     return () => {
@@ -37,7 +42,7 @@ export function BuildInfo() {
           {' · '}
           <span className={`api-${api}`}>
             {api === 'checking' && 'API: conectando…'}
-            {api === 'up' && 'API: en línea'}
+            {api === 'up' && `API: en línea${apiCommit && apiCommit !== 'local' ? ` (${apiCommit})` : ''}`}
             {api === 'down' && 'API: sin conexión'}
           </span>
         </>
