@@ -305,7 +305,7 @@ input[readonly]{background:#f3f6f9}
 .reviewitem .hint{display:block;overflow-wrap:anywhere}
 .docthumb{display:block;width:100%;padding:0;margin:10px 0;border:1px solid #d5e1e9;border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in}
 .docthumb img{display:block;width:100%;max-height:220px;object-fit:contain}
-.reviewitem .fleetactions .primary{min-height:44px;padding:10px 14px;font-size:14px}
+.reviewitem .fleetactions .primary,.reviewitem .fleetactions .danger{width:100%;min-height:44px;padding:10px 14px;font-size:14px}
 .danger{background:var(--danger);color:#fff;border:0;border-radius:11px;padding:10px 14px;min-height:44px;font-weight:700;font-size:14px}
 .danger:disabled{opacity:.5;cursor:not-allowed}
 
