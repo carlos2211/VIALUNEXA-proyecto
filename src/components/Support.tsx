@@ -14,7 +14,7 @@ export function TicketStatusBadge({ ticket }: { ticket: SupportTicket }) {
   return <span className={`status ${cls}`}>{ticket.status}</span>
 }
 
-/** Botón de soporte de un viaje, con los casos ya reportados por el usuario conectado. */
+/** Boton de soporte de un viaje, con los casos ya reportados por el usuario conectado. */
 export function SupportButton({ booking }: { booking: Booking }) {
   const { tickets } = useAppData()
   const { user } = useAuth()

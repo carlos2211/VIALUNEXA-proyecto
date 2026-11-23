@@ -61,6 +61,7 @@ export function AdminView({ hidden }: { hidden: boolean }) {
               key={b.id}
               booking={b}
               fleet={fleet}
+              collapsible
               admin={{ onStatus: s => setStatus(b, s), onAssign: (d, v) => assign(b, d, v) }}
             />
           ))
@@ -84,10 +85,10 @@ export function FleetView({ hidden }: { hidden: boolean }) {
           Cada conductor registra sus propios datos, vehículo y documentos desde su cuenta; aquí los revisas y
           administras.
         </p>
-        <h3>Conductores registrados ({fleet.drivers.length})</h3>
-        <FleetList items={fleet.drivers} />
-        <h3>Vehículos registrados ({fleet.vehicles.length})</h3>
-        <FleetList items={fleet.vehicles} />
+        <p className="hint">
+          <b>{fleet.drivers.length}</b> conductores · <b>{fleet.vehicles.length}</b> vehículos
+        </p>
+        <FleetList fleet={fleet} />
       </div>
 
       {/* Uso excepcional: cerrado por defecto (el contenido se mantiene al cerrar) */}

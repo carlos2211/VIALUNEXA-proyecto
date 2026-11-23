@@ -21,7 +21,7 @@ export function DocButton({ doc, label = 'Ver documento' }: { doc: FleetDoc; lab
   )
 }
 
-/** Estado del documento para el propio conductor, con el motivo si fue rechazado */
+/** Estado del documento para el propio conductor **/
 export function DocStatusBox({ entry }: { entry: FleetEntry }) {
   const status = docStatus(entry)
   const label = DOC_LABEL[entry.kind]

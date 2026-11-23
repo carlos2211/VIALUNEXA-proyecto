@@ -1,0 +1,17 @@
+# Nunca copiar secretos locales a la imagen (la clave de Google llega como build arg)
+.env
+.env.*
+!.env.example
+
+node_modules
+dist
+.git
+.github
+.vscode
+.idea
+
+# La API tiene su propia imagen
+api
+
+*.log
+VIALUNEXA_Reservas_Conductores_Vehiculos-1.html

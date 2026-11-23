@@ -5,6 +5,8 @@ Proyecto del Grupo 19 (Alberto Diaz, Carlos Orrego y Enzo Meschi) para Taller Ap
 
 > **Estado actual:** prototipo de frontend. Los datos y las sesiones se guardan en el navegador (localStorage).
 > La API REST (Java + Spring Boot), la base de datos (Oracle Cloud) y el despliegue en AWS se agregan en las semanas 5 a 7.
+> Ya existe la base de la API en [`api/`](api/) y un servidor de avance con despliegue continuo
+> (Docker + GitHub Actions + Render): ver [DESPLIEGUE.md](DESPLIEGUE.md).
 
 ## Requisitos
 

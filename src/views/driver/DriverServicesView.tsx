@@ -64,7 +64,22 @@ export function DriverServicesView({ hidden, onCompleteProfile }: { hidden: bool
         renderCard={b => {
           const next = NEXT[b.status]
           return (
-            <BookingCard key={b.id} booking={b} fleet={fleet}>
+            <BookingCard
+              key={b.id}
+              booking={b}
+              fleet={fleet}
+              collapsible
+              // El viaje que está realizando ahora queda abierto
+              defaultOpen={b.status === 'En curso'}
+              summaryExtra={
+                <>
+                  <span>
+                    👤 {b.name} · {b.passengers} pasajero{b.passengers === 1 ? '' : 's'}
+                  </span>
+                  {next && <span className="res-warn">➜ Siguiente: {next.toLowerCase()}</span>}
+                </>
+              }
+            >
               {!isClosed(b.status) && (
                 <>
                   <p className="hint">

@@ -1,0 +1,42 @@
+# VIALUNEXA · entorno local con contenedores
+#
+#   docker compose --env-file .env.local up --build          -> como en producción
+#       Frontend: http://localhost:8080   API: http://localhost:8081
+#
+#   docker compose --env-file .env.local --profile dev up api dev   -> desarrollo en vivo
+#       Frontend con recarga instantánea: http://localhost:5173
+services:
+  api:
+    build: ./api
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: http://localhost:8081
+        VITE_GOOGLE_MAPS_KEY: ${VITE_GOOGLE_MAPS_KEY:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
+  # Desarrollo: Vite dentro de un contenedor, con el código montado (cambios al instante)
+  dev:
+    profiles: ["dev"]
+    image: node:22-alpine
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8081
+      # En Windows/macOS los cambios del disco montado se detectan por sondeo
+      VITE_USE_POLLING: "true"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import heroImg from './assets/hero.webp'
+import { BuildInfo } from './components/BuildInfo'
 import { useAppData } from './context/AppDataContext'
 import { useAuth } from './context/AuthContext'
 import { pendingReview } from './lib/documents'
@@ -149,6 +150,7 @@ export default function App() {
       <footer>
         VIALUNEXA · Prototipo demostrativo · Sin pagos, mapas en vivo ni envío real de notificaciones · Información
         almacenada localmente
+        <BuildInfo />
       </footer>
     </>
   )
