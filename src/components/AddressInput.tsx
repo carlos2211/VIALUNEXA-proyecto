@@ -10,11 +10,9 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 
   ref?: Ref<HTMLInputElement> | ((el: HTMLInputElement | null) => void)
   onChange: (e: ChangeEvent<HTMLInputElement>) => void
   onBlur: () => void
-  /** Se llama al elegir una sugerencia, con el texto completo de la dirección */
   onPick: (label: string) => void
 }
 
-/** Campo de dirección con sugerencias (combobox accesible) mientras el usuario escribe. */
 export function AddressInput({ id, value = '', onChange, onBlur, onPick, ...rest }: Props) {
   const [items, setItems] = useState<Suggestion[]>([])
   const [open, setOpen] = useState(false)
@@ -25,7 +23,6 @@ export function AddressInput({ id, value = '', onChange, onBlur, onPick, ...rest
   const query = value.trim()
 
   useEffect(() => {
-    // Solo busca cuando el cambio viene del teclado (no al elegir una sugerencia)
     if (!typed.current || query.length < MIN_CHARS) return
     const ctrl = new AbortController()
     const t = setTimeout(() => {
@@ -112,7 +109,6 @@ export function AddressInput({ id, value = '', onChange, onBlur, onPick, ...rest
                 role="option"
                 aria-selected={i === active}
                 className={i === active ? 'active' : undefined}
-                // mousedown evita que el input pierda el foco antes de elegir
                 onMouseDown={e => {
                   e.preventDefault()
                   pick(p)
@@ -125,7 +121,6 @@ export function AddressInput({ id, value = '', onChange, onBlur, onPick, ...rest
           ) : (
             <li className="combo-empty">Sin coincidencias. Prueba con el nombre de la calle y la comuna.</li>
           )}
-          {/* Atribución exigida por las condiciones de uso de cada proveedor */}
           <li className="combo-attrib" aria-hidden="true">
             {items.some(p => p.source === 'google') ? 'Powered by Google' : '© OpenStreetMap'}
           </li>

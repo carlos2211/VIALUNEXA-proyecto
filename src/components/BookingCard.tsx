@@ -20,9 +20,11 @@ interface Props {
   collapsible?: boolean
   /** Con `collapsible`: si parte desplegada */
   defaultOpen?: boolean
+  /** Con `collapsible`: línea adicional del resumen (p. ej. datos del pasajero para el conductor) */
+  summaryExtra?: ReactNode
 }
 
-export function BookingCard({ booking: b, fleet, admin, children, collapsible, defaultOpen }: Props) {
+export function BookingCard({ booking: b, fleet, admin, children, collapsible, defaultOpen, summaryExtra }: Props) {
   const statusClass = b.status.toLowerCase().replace(' ', '-')
   const stageIndex = STAGES.indexOf(b.status)
 
@@ -106,6 +108,19 @@ export function BookingCard({ booking: b, fleet, admin, children, collapsible, d
             </span>
             <strong>{money(b.price)}</strong>
           </div>
+          {admin && (
+            // Para el admin: quién pidió el viaje y si falta asignar conductor
+            <div className="res-summary res-admin">
+              <span>👤 {b.name}</span>
+              {!['Finalizada', 'Cancelada'].includes(b.status) &&
+                (b.driverId ? (
+                  <span className="res-ok">✓ Conductor asignado</span>
+                ) : (
+                  <span className="res-warn">⚠ Sin conductor</span>
+                ))}
+            </div>
+          )}
+          {summaryExtra && <div className="res-summary res-admin">{summaryExtra}</div>}
           <span className="res-toggle" aria-hidden="true" />
         </summary>
         {body}

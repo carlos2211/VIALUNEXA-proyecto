@@ -330,3 +330,29 @@ input[readonly]{background:#f3f6f9}
 .res-collapsible[open] .res-toggle::before{transform:rotate(180deg)}
 .res-collapsible[open] > summary{border-bottom:1px solid #e3eaf0;padding-bottom:10px;margin-bottom:10px}
 .res-collapsible[open] .res-summary{display:none}
+.res-admin{margin-top:4px;font-size:13px}
+.res-admin .res-ok{color:#166534;font-weight:650}
+.res-admin .res-warn{color:#b45309;font-weight:650}
+
+/* Flota (admin): listado conductor → vehículo */
+.fleetlist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.fleetrow{display:grid;grid-template-columns:1fr;gap:8px;border:1px solid var(--line);border-radius:14px;padding:10px;background:#fff}
+.fleethead{display:none}
+.fleetcell{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.fleetcell .fleetinfo{padding:0;min-width:0;flex:1}
+.fleetcell .fleetinfo strong{display:inline}
+.fleetcell .fleetactions .secondary{width:auto;min-height:38px;padding:6px 12px;font-size:13px}
+.fleetthumb,.fleetcell .photo-placeholder{width:64px;height:64px;border-radius:12px;object-fit:cover;flex-shrink:0;font-size:28px}
+.fleetvehicles{display:flex;flex-direction:column;gap:10px;border-top:1px dashed #d5e1e9;padding-top:8px}
+.fleetempty{color:var(--muted);font-size:14px;padding:8px 0}
+@media(min-width:760px){
+  .fleetrow{grid-template-columns:1fr 1fr;gap:16px;padding:12px 14px}
+  .fleethead{display:grid;border:0;background:none;padding:0 14px;font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+  .fleetvehicles{border-top:0;padding-top:0;border-left:1px dashed #d5e1e9;padding-left:16px}
+}
+.fleetcell .status{display:inline-block;white-space:nowrap}
+
+/* Versión publicada (pie de página) */
+.buildinfo{margin-top:6px;font-size:11px;color:#94a3b8}
+.buildinfo .api-up{color:#15803d}
+.buildinfo .api-down{color:#b45309}

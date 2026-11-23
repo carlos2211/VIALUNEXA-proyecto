@@ -5,13 +5,13 @@ import { FleetPhoto, Plate } from './FleetPhoto'
 
 const findById = (list: FleetEntry[], id: string) => list.find(x => x.id === id)
 
-/** Vehículo registrado por el propio conductor (si tiene cuenta) */
+/** Vehiculo registrado por el propio conductor (si tiene cuenta) */
 const vehicleOf = (fleet: Fleet, driver: FleetEntry | undefined) =>
   driver?.userId ? fleet.vehicles.find(v => v.userId === driver.userId) : undefined
 
 export function AssignmentSummary({ booking, fleet }: { booking: Booking; fleet: Fleet }) {
   const driver = findById(fleet.drivers, booking.driverId)
-  // Si no se asignó un vehículo explícito, se muestra el del conductor
+  // Si no se asigno un vehículo explicito, se muestra el del conductor
   const vehicle = findById(fleet.vehicles, booking.vehicleId) ?? vehicleOf(fleet, driver)
   if (!driver && !vehicle) return null
 
