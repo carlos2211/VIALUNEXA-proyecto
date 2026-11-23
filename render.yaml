@@ -1,0 +1,49 @@
+# Render Blueprint · VIALUNEXA
+# Crea dos servicios independientes, cada uno en su propio contenedor Docker.
+# Render vuelve a desplegar cada uno automáticamente en cada push a "main",
+# solo después de que pasan las verificaciones de GitHub Actions (CI).
+#
+# Si Render asigna otra URL (por ejemplo, porque el nombre ya existe),
+# actualiza VITE_API_URL y CORS_ORIGINS con las URLs reales.
+services:
+  # -------------------------------------------------------------- API
+  - type: web
+    name: vialunexa-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: checksPass
+    # Solo se redespliega si cambia el código de la API
+    buildFilter:
+      paths:
+        - api/**
+    envVars:
+      - key: CORS_ORIGINS
+        value: https://vialunexa-web.onrender.com,http://localhost:5173
+
+  # -------------------------------------------------------------- Frontend
+  - type: web
+    name: vialunexa-web
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    autoDeployTrigger: checksPass
+    # Los cambios que solo tocan la API no redespliegan el frontend
+    buildFilter:
+      ignoredPaths:
+        - api/**
+        - "**/*.md"
+    envVars:
+      - key: VITE_API_URL
+        value: https://vialunexa-api.onrender.com
+      # Se pide al crear el Blueprint; no se guarda en el repositorio
+      - key: VITE_GOOGLE_MAPS_KEY
+        sync: false
